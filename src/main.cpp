@@ -108,5 +108,6 @@ void loop() {
   }
   
   // application of logic
+  Serial.println(String(buttonA) + " " + String(buttonB) + " " + String(buttonToggle));
   digitalWrite(LED_BUILTIN, truthLUT[(currentLogicGateIndex << 2) | (buttonA << 1) | buttonB]);
 }
