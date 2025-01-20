@@ -1,14 +1,15 @@
 #include <Arduino.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
+#include <Adafruit_NeoPixel.h>
 #include <Wire.h>
 #include <array>
 
 #include "./truth_tables.hpp"
 #include "./gate_symbols.h"
 
-#define BUTTON_INPUT_A 4
-#define BUTTON_INPUT_B 5
+#define BUTTON_INPUT_A 5
+#define BUTTON_INPUT_B 7
 
 #define BUTTON_TOGGLE_GATE 6
 
@@ -18,6 +19,12 @@
 #define SCREEN_RESET -1
 
 #define SCREEN_I2C_ADDR 0x3C
+
+// Which pin on the Arduino is connected to the NeoPixels?
+#define NEOPIXEL_PIN        47 // On Trinket or Gemma, suggest changing this to 1
+
+// How many NeoPixels are attached to the Arduino?
+#define NEOPIXEL_NUMPIXELS 4 // Popular NeoPixel ring size
 
 const std::array<eGateType, 6> allGateTypes = {
   eGateType::AND,
@@ -32,6 +39,7 @@ bool toggleInputPressedLastTick = false;
 uint8_t currentLogicGateIndex = 0;
 
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, SCREEN_RESET);
+Adafruit_NeoPixel pixels(NEOPIXEL_NUMPIXELS, NEOPIXEL_PIN, NEO_RGB + NEO_KHZ800);
 
 const unsigned char* gateTypeToBitmapAddr(eGateType gateType) {
   switch (gateType) {
@@ -45,6 +53,20 @@ const unsigned char* gateTypeToBitmapAddr(eGateType gateType) {
   }
 }
 
+void turnOnAllNeopixel() {
+  pixels.clear();
+
+  for (int i = 0; i < NEOPIXEL_NUMPIXELS; i++)
+    pixels.setPixelColor(i, pixels.Color(255, 255, 255));
+
+  pixels.show();
+}
+
+void turnOffAllNeopixel() {
+  pixels.clear();
+  pixels.show();
+}
+
 void setupDisplay() {
   if (!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_I2C_ADDR)) {
     Serial.println("Failed to init display!");
@@ -53,6 +75,8 @@ void setupDisplay() {
 
   display.clearDisplay();
   display.display();
+
+  pixels.begin();
 }
 
 void updateDisplay() {
@@ -99,6 +123,7 @@ void loop() {
     }
 
     updateDisplay();
+    delay(500);
   }
 
   if (buttonToggle) {
@@ -109,5 +134,7 @@ void loop() {
   
   // application of logic
   Serial.println(String(buttonA) + " " + String(buttonB) + " " + String(buttonToggle));
-  digitalWrite(LED_BUILTIN, truthLUT[(currentLogicGateIndex << 2) | (buttonA << 1) | buttonB]);
+  if (truthLUT[(currentLogicGateIndex << 2) | (buttonA << 1) | buttonB])
+    turnOnAllNeopixel();
+  else turnOffAllNeopixel();
 }
